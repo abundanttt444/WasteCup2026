@@ -281,7 +281,7 @@ function update(dt){
   const sp=team.spd*speedMult;
   notes.forEach(n=>{
     if(!n.hit&&!n.missed) n.y+=sp*dt/16;
-    if(!n.hit&&!n.missed&&n.y>TARGET_Y+GOOD_R+22){ n.missed=true; onMiss(n.lane); }
+    if(!n.hit&&!n.missed&&n.y>TARGET_Y+GOOD_R){ n.missed=true; onMiss(n.lane); }
     if(n.hit){
       n.arcT+=dt/480;
       n.x=laneX(n.lane)+(W/2-laneX(n.lane))*n.arcT;
@@ -317,7 +317,7 @@ function update(dt){
 }
 
 function spawnNoteInLane(lane){
-  if(notes.find(n=>!n.hit&&!n.missed&&n.lane===lane&&n.y<SPAWN_Y+90)) return;
+  if(notes.find(n=>!n.hit&&!n.missed&&n.lane===lane&&n.y<SPAWN_Y+200)) return;
   notes.push({
     lane, y:SPAWN_Y, x:laneX(lane),
     emoji:team.trash[Math.floor(Math.random()*team.trash.length)],
@@ -335,7 +335,7 @@ function maybeSpawnBurst(){
   const burstChance=Math.min(0.65,Math.max(0,(el-15)/75));
   if(Math.random()<burstChance){
     const pat=BURST_PATTERNS[Math.floor(Math.random()*BURST_PATTERNS.length)];
-    const spacing=Math.max(110,270-el*2.5);
+    const spacing=Math.max(160,270-el*2.5);
     pat.forEach((lane,i)=>{
       if(i===0) spawnNoteInLane(lane);
       else burstQueue.push({lane, t:spacing*i});
@@ -397,9 +397,14 @@ function onMiss(lane){
   playBoo();
 }
 function breakCombo(lane,reason){
+  if(reason==='EMPTY'){
+    score=Math.max(0,score-5);
+    floatTexts.push({x:laneX(lane),y:TARGET_Y-20,text:'EMPTY',color:'#ef4444',size:11,life:1});
+    updateHUD();
+  }
   if(combo>0||reason==='MISS'){
     if(combo>0){ combo=0; updateCombo(); }
-    if(reason!=='MISS') floatTexts.push({x:laneX(lane),y:TARGET_Y-20,text:reason,color:'#ef4444',size:11,life:1});
+    if(reason==='EARLY') floatTexts.push({x:laneX(lane),y:TARGET_Y-20,text:'EARLY',color:'#ef4444',size:11,life:1});
   }
 }
 
@@ -425,6 +430,7 @@ function drawFade(){
 }
 
 function showEndScreen(){
+  cancelAnimationFrame(raf);
   document.getElementById('ui').classList.remove('on');
   const ov=document.getElementById('ov');
   ov.style.opacity='0'; ov.style.transition='opacity 0.5s';
@@ -434,7 +440,7 @@ function showEndScreen(){
   document.getElementById('hint').style.display='none';
   document.getElementById('obt').style.display='flex';
   document.getElementById('ot').textContent='FINAL SCORE';
-  document.getElementById('os').textContent=score+' PTS\n\nBEST COMBO: x'+Math.max(maxCombo,1);
+  document.getElementById('os').textContent=score+' PTS\n\nBEST COMBO: '+(maxCombo>0?'x'+maxCombo:'none');
   document.getElementById('btn-go').textContent='PLAY AGAIN';
   document.getElementById('btn-go').onclick=()=>{ ov.style.display='none'; startGame(); };
   document.getElementById('btn-menu').onclick=()=>{ fadeToBlack(()=>{ ov.style.display='none'; resetMenu(); }); };
@@ -449,19 +455,17 @@ function quitGame(){
   gameState='over'; clearInterval(clockTimer); stopMusic();
   document.getElementById('btn-quit').style.display='none';
   fadeToBlack(()=>{
+    cancelAnimationFrame(raf);
     document.getElementById('ui').classList.remove('on');
     document.getElementById('ov').style.display='none';
     resetMenu();
-    const ov=document.getElementById('ov');
-    ov.style.opacity='0'; ov.style.transition='opacity 0.5s';
-    ov.style.display='flex';
-    requestAnimationFrame(()=>{ ov.style.opacity='1'; });
   });
 }
 document.getElementById('btn-quit').onclick=quitGame;
 
 // Input
 document.addEventListener('keydown',e=>{
+  if(e.repeat) return;
   LANE_KEYS.forEach((keys,i)=>{ if(keys.includes(e.key)){ e.preventDefault(); tryHit(i); }});
 });
 c.addEventListener('click',e=>{
@@ -606,9 +610,9 @@ function drawPixelRing(cx,cy,r,color,thickness){
 
 function drawGoalSprite(){
   if(!dumpImg.complete || dumpImg.naturalWidth===0) return;
-  const iw=W;
+  const iw=LANES_TOTAL;
   const ih=Math.round(iw*dumpImg.naturalHeight/dumpImg.naturalWidth);
-  const ix=0;
+  const ix=Math.floor(LANE_X0);
   const iy=5;
   ctx.save();
   ctx.imageSmoothingEnabled=false;
