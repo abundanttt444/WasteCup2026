@@ -42,6 +42,21 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
   letter-spacing: 2px; cursor: pointer;
 }
 .btn-quit:hover { color: #ff4500; border-color: #ff4500; }
+#name-input {
+  background: #110e1c; border: 2px solid #ff4500; color: #fff;
+  font-family: 'Courier New', monospace; font-size: 14px; letter-spacing: 3px;
+  padding: 8px 14px; text-align: center; outline: none; width: 200px; text-transform: uppercase;
+}
+#name-input::placeholder { color: #443333; }
+#lb-wrap { flex-direction: column; align-items: center; width: 100%; max-width: 380px; gap: 4px; }
+.lb-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid #1a1030; font-size: 11px; letter-spacing: 1px; font-family: 'Courier New', monospace; width: 100%; }
+.lb-row.lb-hi { background: #1f0820; }
+.lb-rank { width: 22px; color: #664433; text-align: right; flex-shrink: 0; }
+.lb-flag { width: 20px; text-align: center; flex-shrink: 0; }
+.lb-name { flex: 1; color: #ffffff; }
+.lb-score { color: #ffcc00; font-weight: 700; width: 56px; text-align: right; flex-shrink: 0; }
+.lb-date { color: #332244; font-size: 9px; width: 48px; text-align: right; flex-shrink: 0; }
+.lb-empty { color: #332244; text-align: center; padding: 20px; font-family: 'Courier New'; font-size: 11px; letter-spacing: 2px; width: 100%; }
 .bs {
   background: #1a1030; color: #665544; border: 2px solid #332244;
   padding: 7px 20px; font-size: 10px; font-family: 'Courier New', monospace;
@@ -86,6 +101,14 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
       <button class="bs" id="btn-menu">BACK</button>
     </div>
     <div style="font-size:11px;color:#665566;letter-spacing:1px;text-align:center" id="hint">PICK YOUR TEAM</div>
+    <button class="bs" id="btn-show-lb" style="display:none;margin-top:4px">LEADERBOARD</button>
+    <div id="name-entry" style="display:none;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:300px">
+      <input id="name-input" type="text" maxlength="10" placeholder="ENTER NAME" autocomplete="off" spellcheck="false">
+      <button class="bg" id="btn-save-score">SAVE SCORE</button>
+      <button class="bs" id="btn-skip-save">SKIP</button>
+    </div>
+    <div id="lb-wrap" style="display:none"></div>
+    <button class="bs" id="btn-lb-back" style="display:none;margin-top:10px">← BACK</button>
   </div>
 </div>
 <script>
@@ -165,10 +188,45 @@ function selectTeam(i){
   document.getElementById('os').textContent='Trash falls down each lane\n\nHit the key when it reaches the ring\n\nBuild combos for bonus points';
 }
 
+// ===== LEADERBOARD =====
+function getScores(){ try{ return JSON.parse(localStorage.getItem('wastecup_lb')||'[]'); }catch(e){ return []; } }
+function saveScore(name){
+  const scores=getScores();
+  scores.push({name:(name||'???').toUpperCase().slice(0,10),score,combo:maxCombo,flag:team.flag,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
+  scores.sort((a,b)=>b.score-a.score);
+  localStorage.setItem('wastecup_lb',JSON.stringify(scores.slice(0,10)));
+}
+function renderLeaderboard(hiScore){
+  const scores=getScores();
+  const wrap=document.getElementById('lb-wrap');
+  if(!scores.length){ wrap.innerHTML='<div class="lb-empty">NO SCORES YET</div>'; return; }
+  wrap.innerHTML=scores.map((s,i)=>`<div class="lb-row${s.score===hiScore?' lb-hi':''}"><span class="lb-rank">#${i+1}</span><span class="lb-flag">${s.flag||''}</span><span class="lb-name">${s.name}</span><span class="lb-score">${s.score}</span><span class="lb-date">${s.date||''}</span></div>`).join('');
+}
+function showLeaderboard(hiScore){
+  const ov=document.getElementById('ov');
+  ov.style.display='flex';
+  document.getElementById('ot').textContent='LEADERBOARD';
+  document.getElementById('os').textContent='';
+  document.getElementById('tgrid').style.display='none';
+  document.getElementById('hint').style.display='none';
+  document.getElementById('obt').style.display='none';
+  document.getElementById('name-entry').style.display='none';
+  document.getElementById('btn-show-lb').style.display='none';
+  renderLeaderboard(hiScore);
+  document.getElementById('lb-wrap').style.display='flex';
+  document.getElementById('btn-lb-back').style.display='block';
+}
+document.getElementById('btn-show-lb').onclick=()=>showLeaderboard(null);
+document.getElementById('btn-lb-back').onclick=()=>{ document.getElementById('lb-wrap').style.display='none'; document.getElementById('btn-lb-back').style.display='none'; resetMenu(); document.getElementById('ov').style.display='flex'; };
+
 function resetMenu(){
   document.getElementById('tgrid').style.display='grid';
   document.getElementById('hint').style.display='block';
   document.getElementById('obt').style.display='none';
+  document.getElementById('name-entry').style.display='none';
+  document.getElementById('lb-wrap').style.display='none';
+  document.getElementById('btn-lb-back').style.display='none';
+  document.getElementById('btn-show-lb').style.display='block';
   document.getElementById('ot').textContent='WASTE CUP 2026';
   document.getElementById('os').textContent='Get the trash in the dumpster before time runs out';
 }
@@ -438,12 +496,27 @@ function showEndScreen(){
   requestAnimationFrame(()=>{ ov.style.opacity='1'; });
   document.getElementById('tgrid').style.display='none';
   document.getElementById('hint').style.display='none';
+  document.getElementById('lb-wrap').style.display='none';
+  document.getElementById('btn-lb-back').style.display='none';
+  document.getElementById('btn-show-lb').style.display='none';
   document.getElementById('obt').style.display='flex';
   document.getElementById('ot').textContent='FINAL SCORE';
   document.getElementById('os').textContent=score+' PTS\n\nBEST COMBO: '+(maxCombo>0?'x'+maxCombo:'none');
   document.getElementById('btn-go').textContent='PLAY AGAIN';
-  document.getElementById('btn-go').onclick=()=>{ ov.style.display='none'; startGame(); };
-  document.getElementById('btn-menu').onclick=()=>{ fadeToBlack(()=>{ ov.style.display='none'; resetMenu(); }); };
+  document.getElementById('btn-go').onclick=()=>{ ov.style.display='none'; document.getElementById('name-entry').style.display='none'; startGame(); };
+  document.getElementById('btn-menu').onclick=()=>{ fadeToBlack(()=>{ resetMenu(); ov.style.display='flex'; }); };
+  // name entry + save
+  const ne=document.getElementById('name-entry');
+  ne.style.display='flex';
+  document.getElementById('name-input').value='';
+  const doSave=()=>{
+    const n=document.getElementById('name-input').value.trim();
+    saveScore(n); ne.style.display='none';
+    showLeaderboard(score);
+  };
+  document.getElementById('btn-save-score').onclick=doSave;
+  document.getElementById('name-input').onkeydown=e=>{ if(e.key==='Enter') doSave(); };
+  document.getElementById('btn-skip-save').onclick=()=>{ ne.style.display='none'; };
 }
 
 function endGame(){
