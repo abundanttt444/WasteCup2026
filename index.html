@@ -513,7 +513,10 @@ function showEndScreen(){
   document.getElementById('os').textContent=score+' PTS\n\nBEST COMBO: '+(maxCombo>0?'x'+maxCombo:'none');
   document.getElementById('btn-go').textContent='PLAY AGAIN';
   document.getElementById('btn-go').onclick=()=>{ ov.style.display='none'; document.getElementById('name-entry').style.display='none'; startGame(); };
-  document.getElementById('btn-menu').onclick=()=>{ fadeToBlack(()=>{ resetMenu(); ov.style.display='flex'; }); };
+  document.getElementById('btn-menu').onclick=()=>{
+    ov.style.transition='opacity 0.4s'; ov.style.opacity='0';
+    setTimeout(()=>{ resetMenu(); ov.style.display='flex'; ov.style.opacity='1'; }, 400);
+  };
   // name entry + save
   const ne=document.getElementById('name-entry');
   ne.style.display='flex';
