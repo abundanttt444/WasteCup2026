@@ -183,6 +183,7 @@ function selectTeam(i){
   team=TEAMS[i];
   document.getElementById('tgrid').style.display='none';
   document.getElementById('hint').style.display='none';
+  document.getElementById('btn-show-lb').style.display='none';
   document.getElementById('obt').style.display='flex';
   document.getElementById('ot').textContent=team.flag+' '+team.name;
   document.getElementById('os').textContent='Trash falls down each lane\n\nHit the key when it reaches the ring\n\nBuild combos for bonus points';
@@ -191,10 +192,12 @@ function selectTeam(i){
 // ===== LEADERBOARD =====
 function getScores(){ try{ return JSON.parse(localStorage.getItem('wastecup_lb')||'[]'); }catch(e){ return []; } }
 function saveScore(name){
-  const scores=getScores();
-  scores.push({name:(name||'???').toUpperCase().slice(0,10),score,combo:maxCombo,flag:team.flag,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
-  scores.sort((a,b)=>b.score-a.score);
-  localStorage.setItem('wastecup_lb',JSON.stringify(scores.slice(0,10)));
+  try{
+    const scores=getScores();
+    scores.push({name:(name||'???').toUpperCase().slice(0,10),score,combo:maxCombo,flag:team.flag,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
+    scores.sort((a,b)=>b.score-a.score);
+    localStorage.setItem('wastecup_lb',JSON.stringify(scores.slice(0,10)));
+  }catch(e){}
 }
 function renderLeaderboard(hiScore){
   const scores=getScores();
