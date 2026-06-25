@@ -457,8 +457,8 @@ function quitGame(){
   fadeToBlack(()=>{
     cancelAnimationFrame(raf);
     document.getElementById('ui').classList.remove('on');
-    document.getElementById('ov').style.display='none';
     resetMenu();
+    document.getElementById('ov').style.display='flex';
   });
 }
 document.getElementById('btn-quit').onclick=quitGame;
